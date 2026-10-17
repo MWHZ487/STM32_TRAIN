@@ -1,0 +1,21 @@
+{
+  "cmake.useCMakePresets": "always",
+  "cmake.configureOnOpen": true,
+
+  "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+  "C_Cpp.default.cStandard": "c11",
+  "C_Cpp.default.intelliSenseMode": "windows-gcc-arm",
+  "C_Cpp.default.compilerPath": "D:/Software/Dev/STM32CubeCLT/GNU-tools-for-STM32/bin/arm-none-eabi-gcc.exe",
+  "C_Cpp.default.defines": ["STM32F103xB"],
+
+  "files.associations": {
+    "*.ld": "linkerscript",
+    "*.s": "asm",
+    "*.h": "c"
+  },
+
+  "editor.tabSize": 4,
+  "editor.insertSpaces": true,
+  "files.encoding": "utf8",
+  "files.eol": "\n"
+}

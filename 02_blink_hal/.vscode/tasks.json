@@ -1,0 +1,46 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "构建 (Build)",
+      "type": "shell",
+      "command": "cmake",
+      "args": ["--build", "--preset", "debug"],
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": ["$gcc"],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      },
+      "detail": "编译 STM32 工程，输出 elf / bin / hex"
+    },
+    {
+      "label": "配置 (Configure)",
+      "type": "shell",
+      "command": "cmake",
+      "args": ["--preset", "debug"],
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared" },
+      "detail": "重新生成构建文件（改了 CMakeLists 后执行）"
+    },
+    {
+      "label": "清理 (Clean)",
+      "type": "shell",
+      "command": "cmake",
+      "args": ["--build", "--preset", "debug", "--target", "clean"],
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared" },
+      "detail": "删除编译中间产物"
+    },
+    {
+      "label": "烧录 (Flash via ST-Link)",
+      "type": "shell",
+      "command": "cmake",
+      "args": ["--build", "--preset", "debug", "--target", "flash"],
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared" },
+      "detail": "用 STM32CubeProgrammer CLI 通过 ST-Link 写入芯片。需要已连接开发板"
+    }
+  ]
+}
