@@ -1,0 +1,41 @@
+-- The C compiler identification is GNU 14.3.1
+-- The CXX compiler identification is GNU 14.3.1
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: D:/Software/Dev/STM32CubeCLT/GNU-tools-for-STM32/bin/arm-none-eabi-gcc.exe - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: D:/Software/Dev/STM32CubeCLT/GNU-tools-for-STM32/bin/arm-none-eabi-g++.exe - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- The ASM compiler identification is GNU
+-- Found assembler: D:/Software/Dev/STM32CubeCLT/GNU-tools-for-STM32/bin/arm-none-eabi-gcc.exe
+-- Configuring done (3.2s)
+-- Generating done (0.1s)
+-- Build files have been written to: E:/AiModles/DSH/workspace/STUDY MATE/.tmp/pwm-build/PWM_1-trim
+[1/21] Building ASM object CMakeFiles/PWM_1.dir/startup_stm32f103xb.s.obj
+[2/21] Building C object CMakeFiles/PWM_1.dir/Core/Src/sysmem.c.obj
+[3/21] Building C object CMakeFiles/PWM_1.dir/Core/Src/main.c.obj
+[4/21] Building C object CMakeFiles/PWM_1.dir/Core/Src/syscalls.c.obj
+[5/21] Building C object CMakeFiles/PWM_1.dir/Core/Src/stm32f1xx_it.c.obj
+[6/21] Building C object CMakeFiles/PWM_1.dir/Core/Src/stm32f1xx_hal_msp.c.obj
+[7/21] Building C object cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_gpio_ex.c.obj
+[8/21] Building C object cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Core/Src/system_stm32f1xx.c.obj
+[9/21] Building C object cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal.c.obj
+[10/21] Building C object cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_rcc_ex.c.obj
+[11/21] Building C object cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_pwr.c.obj
+[12/21] Building C object cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_cortex.c.obj
+[13/21] Building C object cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_gpio.c.obj
+[14/21] Building C object cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_rcc.c.obj
+[15/21] Building C object cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_dma.c.obj
+[16/21] Building C object cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_exti.c.obj
+[17/21] Building C object cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_flash.c.obj
+[18/21] Building C object cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_flash_ex.c.obj
+[19/21] Building C object cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_tim_ex.c.obj
+[20/21] Building C object cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_tim.c.obj
+[21/21] Linking C executable PWM_1.elf
+Memory region         Used Size  Region Size  %age Used
+             RAM:        1656 B        20 KB      8.09%
+           FLASH:        8064 B        64 KB     12.30%
