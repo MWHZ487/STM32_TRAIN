@@ -101,36 +101,37 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    /* ===== 演示：正转渐快 → 停 → 固定转速 → 反转渐快 → 停 ===== */
-    /* 正转：50% → 95%，每档 200ms（避开低占空比死区） */
-    for (count = 500; count <= 950; count += 50)
+    //如果占空比太低了，电压不足以驱动电机旋转
+    //或者，刚启动的时候转速很低
+    //正转
+    for (count = 500 ; count <= 950 ; count += 50)
     {
-      __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, count);   // AIN1 = PWM
-      __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 0);       // AIN2 = 0
+      __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, count);  //PA6  渐快
+      __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 0);   //PA7
       HAL_Delay(200);
     }
 
-    /* 停 1 秒（两路都 0 = 滑行） */
+    //刹车
     __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 0);
     __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 0);
     HAL_Delay(1000);
 
-    /* 固定 70% 转速，保持 2 秒 */
     __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 700);
-    __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 0);
-    HAL_Delay(2000);
+    __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 0);  //精准控制转速
+    HAL_Delay(2000); //继续
 
-    /* 反转：50% → 95%，每档 200ms */
-    for (count = 500; count <= 950; count += 50)
+
+    //反转
+    for (count = 500 ; count <= 950 ; count += 50)
     {
-      __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 0);       // AIN1 = 0
-      __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, count);   // AIN2 = PWM
+      __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, count);
+      __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 0);
       HAL_Delay(200);
     }
 
-    /* 停 1.5 秒 */
-    __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 0);
+    //结束
     __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 0);
+    __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 0);
     HAL_Delay(1500);
   }
   /* USER CODE END 3 */
