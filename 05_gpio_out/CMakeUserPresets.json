@@ -1,0 +1,45 @@
+{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "clion-debug",
+      "displayName": "CLion Debug (STM32CubeCLT)",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/cmake-build-clion/Debug",
+      "toolchainFile": "${sourceDir}/cmake/gcc-arm-none-eabi.cmake",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_MAKE_PROGRAM": "D:/Software/Dev/STM32CubeCLT/Ninja/bin/ninja.exe",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      },
+      "environment": {
+        "PATH": "D:/Software/Dev/STM32CubeCLT/GNU-tools-for-STM32/bin;D:/Software/Dev/STM32CubeCLT/CMake/bin;D:/Software/Dev/STM32CubeCLT/Ninja/bin;$penv{PATH}"
+      }
+    },
+    {
+      "name": "clion-release",
+      "displayName": "CLion Release (STM32CubeCLT)",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/cmake-build-clion/Release",
+      "toolchainFile": "${sourceDir}/cmake/gcc-arm-none-eabi.cmake",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_MAKE_PROGRAM": "D:/Software/Dev/STM32CubeCLT/Ninja/bin/ninja.exe",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      },
+      "environment": {
+        "PATH": "D:/Software/Dev/STM32CubeCLT/GNU-tools-for-STM32/bin;D:/Software/Dev/STM32CubeCLT/CMake/bin;D:/Software/Dev/STM32CubeCLT/Ninja/bin;$penv{PATH}"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "clion-debug",
+      "configurePreset": "clion-debug"
+    },
+    {
+      "name": "clion-release",
+      "configurePreset": "clion-release"
+    }
+  ]
+}
