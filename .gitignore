@@ -6,3 +6,6 @@ cmake-build-*/
 *.bin
 *.hex
 *.map
+Drivers/
+*.mp4
+*.mov
