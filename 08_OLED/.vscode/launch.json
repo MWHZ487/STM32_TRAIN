@@ -1,0 +1,23 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "调试 (ST-Link / SWD)",
+      "type": "cortex-debug",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "executable": "${workspaceFolder}/build/Debug/OLED.elf",
+      "device": "STM32F103C8",
+      "interface": "swd",
+      "servertype": "stlink",
+      "gdbPath": "D:/Software/Dev/STM32CubeCLT/GNU-tools-for-STM32/bin/arm-none-eabi-gdb.exe",
+      "stLinkGdbServerPath": "D:/Software/Dev/STM32CubeCLT/STLink-gdb-server/bin/ST-LINK_gdbserver.exe",
+      "stm32cubeprogrammer": "D:/Software/Dev/STM32CubeCLT/STM32CubeProgrammer/bin",
+      "svdFile": "D:/Software/Dev/STM32CubeCLT/STMicroelectronics_CMSIS_SVD/STM32F103.svd",
+      "runToEntryPoint": "main",
+      "preLaunchTask": "构建 (Build)",
+      "showDevDebugOutput": "none",
+      "// 说明": "svdFile 让调试时能在 Peripherals 面板里直接看 RCC / GPIO 寄存器的值，不用去数 bit"
+    }
+  ]
+}
