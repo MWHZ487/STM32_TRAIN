@@ -1,8 +1,4 @@
-/* MPU6050 驱动 · 源文件
- * 任务 4.2：读陀螺仪角速度与加速度，OLED 实时刷新
- *
- * 流程：WHO_AM_I 验证 → 复位 → 唤醒 → 采样率 → 量程 → 读 14 字节 → 拼接 → 换算
- */
+/* MPU6050 驱动 · 源文件*/
 #include "MPU.h"
 
 extern I2C_HandleTypeDef hi2c1;
@@ -16,7 +12,7 @@ static float s_lsb_gyro = 131.0f;     /* ±250°/s  */
 
 /* ---------------- 底层寄存器读写 ---------------- */
 
-void MPU_WriteReg(uint8_t reg, uint8_t val)
+void MPU_WriteReg(uint8_t reg, uint8_t val)  
 {
     HAL_I2C_Mem_Write(&hi2c1, MPU_ADDR, reg,
                       I2C_MEMADD_SIZE_8BIT, &val, 1, 100);
@@ -82,13 +78,13 @@ void MPU_Init(void)
 
 /* ---------------- 读取与换算 ---------------- */
 
-void MPU_ReadRaw(MPU_Data *m)
+void MPU_ReadRaw(MPU_Data *m)  //指针指向数据，这里就是读就好了，可以用指针指向结构体内部的东西，，，所以这个貌似就是用来读外设MPU的 
 {
-    uint8_t buf[14];
+    uint8_t buf[14];  //十四位数组
 
-    MPU_ReadRegs(MPU_REG_ACCEL_XOUT_H, 14, buf);
+    MPU_ReadRegs(MPU_REG_ACCEL_XOUT_H, 14, buf); //读取高位的数据
 
-    m->acc_x_raw = (int16_t)((buf[0] << 8) | buf[1]);
+    m->acc_x_raw = (int16_t)((buf[0] << 8) | buf[1]);  //高位左移8位，低位直接加上去，拼成真实数据
     m->acc_y_raw = (int16_t)((buf[2] << 8) | buf[3]);
     m->acc_z_raw = (int16_t)((buf[4] << 8) | buf[5]);
 

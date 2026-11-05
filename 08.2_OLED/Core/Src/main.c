@@ -59,7 +59,7 @@ static void MX_DMA_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_USART1_UART_Init(void);
 /* USER CODE BEGIN PFP */
-static void OLED_ShowSigned(uint8_t x, uint8_t y, int32_t v, uint8_t len);
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -75,8 +75,11 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-  uint16_t a_x, a_y, a_z;
-  uint16_t w_x, w_y, w_z;
+  int16_t a_x, a_y, a_z; //加速度
+  int16_t w_x, w_y, w_z; //Omega
+  int16_t a_x_tr, a_y_tr, a_z_tr; //加速度换算后的值
+  int16_t w_x_tr, w_y_tr, w_z_tr; //角速度
+  uint32_t now = 0;
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -102,57 +105,70 @@ int main(void)
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
   OLED_Init();
-  OLED_Clear();
-
-  MPU_Init();
-
-  /* 标签：左半屏加速度（0.01g），右半屏角速度（°/s） */
-  OLED_ShowString(0,  0, "AX", 16);
-  OLED_ShowString(0,  2, "AY", 16);
-  OLED_ShowString(0,  4, "AZ", 16);
-  OLED_ShowString(64, 0, "GX", 16);
-  OLED_ShowString(64, 2, "GY", 16);
-  OLED_ShowString(64, 4, "GZ", 16);
-
-  if (!g_mpu_ok)
+  OLED_ShowString(0, 0, "MPU6050 Test", 16);
+  MPU_Init();                         //先对MPU6050进行初始化
+  //发送测试消息,屏幕正常
+  if (g_mpu_ok)
   {
-      OLED_ShowString(0, 6, "NO MPU6050", 16);
+    OLED_ShowString(0, 2, "MPU6050 OK", 16);
+    HAL_Delay(1000);
+    OLED_ShowString(0, 0, "wx:", 16);  //24
+    OLED_ShowString(0, 2, "wy:", 16);
+    OLED_ShowString(0, 4, "wz:", 16);
+    OLED_ShowString(64, 0, "ax:", 16);
+    OLED_ShowString(64, 2, "ay:", 16);
+    OLED_ShowString(64, 4, "az:", 16);
   }
+  else
+  {
+    OLED_ShowString(0, 2, "MPU6050 ERR", 16);
+  }
+
+  //对于陀螺仪的检查不妨直接仍在主循环里面
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  while (1)
-  {
+  while (1)                             // 128 * 64(8)  128 = 8 * 16 = 3+3+2+8   25  57   - 1  cnm
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    static uint32_t last_read = 0;
-    static uint32_t last_try  = 0;
+  if (g_mpu_ok && HAL_GetTick() - now > 200)  // 3*8 - 1 = 23  +8+1 = 24 +2*8 = 40  同理 80
+  {
+    now = HAL_GetTick();                                // 64ROW   128COL
 
-    if (!g_mpu_ok)
-    {
-        if (HAL_GetTick() - last_try >= 1000)
-        {
-            last_try = HAL_GetTick();
-            MPU_Init();
-            OLED_ShowString(0, 6, g_mpu_ok ? "MPU OK    " : "NO MPU6050", 16);
-        }
-    }
-    else if (HAL_GetTick() - last_read >= 200)
-    {
-        last_read = HAL_GetTick();
+    MPU_ReadRaw(&g_mpu);
+    w_x = g_mpu.gyro_x_raw;
+    w_y = g_mpu.gyro_y_raw;
+    w_z = g_mpu.gyro_z_raw;
+    a_x = g_mpu.acc_x_raw;
+    a_y = g_mpu.acc_y_raw;
+    a_z = g_mpu.acc_z_raw; //hal真好用。？
 
-        MPU_Update(&g_mpu);
+    MPU_Convert(&g_mpu);
 
-        OLED_ShowSigned(16, 0, (int32_t)(g_mpu.acc_x * 100), 3);
-        OLED_ShowSigned(16, 2, (int32_t)(g_mpu.acc_y * 100), 3);
-        OLED_ShowSigned(16, 4, (int32_t)(g_mpu.acc_z * 100), 3);
+    w_x_tr = (int16_t)(g_mpu.gyro_x * 10);
+    w_y_tr = (int16_t)(g_mpu.gyro_y * 10);
+    w_z_tr = (int16_t)(g_mpu.gyro_z * 10);
+    a_x_tr = (int16_t)(g_mpu.acc_x * 100);
+    a_y_tr = (int16_t)(g_mpu.acc_y * 100);
+    a_z_tr = (int16_t)(g_mpu.acc_z * 100);
 
-        OLED_ShowSigned(80, 0, (int32_t)g_mpu.gyro_x, 3);
-        OLED_ShowSigned(80, 2, (int32_t)g_mpu.gyro_y, 3);
-        OLED_ShowSigned(80, 4, (int32_t)g_mpu.gyro_z, 3);
-    }
+    OLED_ShowChar(24, 0, (w_x_tr < 0) ? '-' : ' ', 16);
+    OLED_ShowNum (32, 0, (uint16_t)((w_x_tr < 0) ? -w_x_tr : w_x_tr), 4, 16);
+    OLED_ShowChar(24, 2, (w_y_tr < 0) ? '-' : ' ', 16);
+    OLED_ShowNum (32, 2, (uint16_t)((w_y_tr < 0) ? -w_y_tr : w_y_tr), 4, 16);
+    OLED_ShowChar(24, 4, (w_z_tr < 0) ? '-' : ' ', 16);
+    OLED_ShowNum (32, 4, (uint16_t)((w_z_tr < 0) ? -w_z_tr : w_z_tr), 4, 16);
+
+    OLED_ShowChar(88, 0, (a_x_tr < 0) ? '-' : ' ', 16);
+    OLED_ShowNum (96, 0, (uint16_t)((a_x_tr < 0) ? -a_x_tr : a_x_tr), 4, 16);
+    OLED_ShowChar(88, 2, (a_y_tr < 0) ? '-' : ' ', 16);
+    OLED_ShowNum (96, 2, (uint16_t)((a_y_tr < 0) ? -a_y_tr : a_y_tr), 4, 16);
+    OLED_ShowChar(88, 4, (a_z_tr < 0) ? '-' : ' ', 16);
+    OLED_ShowNum (96, 4, (uint16_t)((a_z_tr < 0) ? -a_z_tr : a_z_tr), 4, 16);
+  }
+
     /* USER CODE END 3 */
   }
 }
@@ -320,21 +336,6 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-
-/* 显示有符号整数（OLED_ShowNum 不支持负数） */
-static void OLED_ShowSigned(uint8_t x, uint8_t y, int32_t v, uint8_t len)
-{
-    if (v < 0)
-    {
-        OLED_ShowChar(x, y, '-', 16);
-        OLED_ShowNum(x + 8, y, (uint32_t)(-v), len, 16);
-    }
-    else
-    {
-        OLED_ShowChar(x, y, ' ', 16);
-        OLED_ShowNum(x + 8, y, (uint32_t)v, len, 16);
-    }
-}
 
 /* USER CODE END 4 */
 
