@@ -9,3 +9,4 @@ cmake-build-*/
 Drivers/
 *.mp4
 *.mov
+compile_commands.json
