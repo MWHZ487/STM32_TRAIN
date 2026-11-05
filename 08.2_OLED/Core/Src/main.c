@@ -21,6 +21,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "oled.h"
+#include "MPU.h"
 
 /* USER CODE END Includes */
 
@@ -57,7 +59,7 @@ static void MX_DMA_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_USART1_UART_Init(void);
 /* USER CODE BEGIN PFP */
-
+static void OLED_ShowSigned(uint8_t x, uint8_t y, int32_t v, uint8_t len);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -99,7 +101,23 @@ int main(void)
   MX_I2C1_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
+  OLED_Init();
+  OLED_Clear();
 
+  MPU_Init();
+
+  /* 标签：左半屏加速度（0.01g），右半屏角速度（°/s） */
+  OLED_ShowString(0,  0, "AX", 16);
+  OLED_ShowString(0,  2, "AY", 16);
+  OLED_ShowString(0,  4, "AZ", 16);
+  OLED_ShowString(64, 0, "GX", 16);
+  OLED_ShowString(64, 2, "GY", 16);
+  OLED_ShowString(64, 4, "GZ", 16);
+
+  if (!g_mpu_ok)
+  {
+      OLED_ShowString(0, 6, "NO MPU6050", 16);
+  }
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -109,8 +127,34 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+    static uint32_t last_read = 0;
+    static uint32_t last_try  = 0;
+
+    if (!g_mpu_ok)
+    {
+        if (HAL_GetTick() - last_try >= 1000)
+        {
+            last_try = HAL_GetTick();
+            MPU_Init();
+            OLED_ShowString(0, 6, g_mpu_ok ? "MPU OK    " : "NO MPU6050", 16);
+        }
+    }
+    else if (HAL_GetTick() - last_read >= 200)
+    {
+        last_read = HAL_GetTick();
+
+        MPU_Update(&g_mpu);
+
+        OLED_ShowSigned(16, 0, (int32_t)(g_mpu.acc_x * 100), 3);
+        OLED_ShowSigned(16, 2, (int32_t)(g_mpu.acc_y * 100), 3);
+        OLED_ShowSigned(16, 4, (int32_t)(g_mpu.acc_z * 100), 3);
+
+        OLED_ShowSigned(80, 0, (int32_t)g_mpu.gyro_x, 3);
+        OLED_ShowSigned(80, 2, (int32_t)g_mpu.gyro_y, 3);
+        OLED_ShowSigned(80, 4, (int32_t)g_mpu.gyro_z, 3);
+    }
+    /* USER CODE END 3 */
   }
-  /* USER CODE END 3 */
 }
 
 /**
@@ -276,6 +320,21 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+
+/* 显示有符号整数（OLED_ShowNum 不支持负数） */
+static void OLED_ShowSigned(uint8_t x, uint8_t y, int32_t v, uint8_t len)
+{
+    if (v < 0)
+    {
+        OLED_ShowChar(x, y, '-', 16);
+        OLED_ShowNum(x + 8, y, (uint32_t)(-v), len, 16);
+    }
+    else
+    {
+        OLED_ShowChar(x, y, ' ', 16);
+        OLED_ShowNum(x + 8, y, (uint32_t)v, len, 16);
+    }
+}
 
 /* USER CODE END 4 */
 
