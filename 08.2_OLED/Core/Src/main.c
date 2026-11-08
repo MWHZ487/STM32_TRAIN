@@ -105,6 +105,7 @@ int main(void)
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
   OLED_Init();
+  OLED_Clear();
   OLED_ShowString(0, 0, "MPU6050 Test", 16);
   MPU_Init();                         //先对MPU6050进行初始化
   //发送测试消息,屏幕正常
@@ -114,7 +115,7 @@ int main(void)
     HAL_Delay(1000);
     OLED_ShowString(0, 0, "wx:", 16);  //24
     OLED_ShowString(0, 2, "wy:", 16);
-    OLED_ShowString(0, 4, "wz:", 16);
+    OLED_ShowString(0, 4, "wz:", 16); //这里算错了两遍，上AI了（
     OLED_ShowString(64, 0, "ax:", 16);
     OLED_ShowString(64, 2, "ay:", 16);
     OLED_ShowString(64, 4, "az:", 16);
@@ -130,6 +131,7 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)                             // 128 * 64(8)  128 = 8 * 16 = 3+3+2+8   25  57   - 1  cnm
+  {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -143,7 +145,7 @@ int main(void)
     w_z = g_mpu.gyro_z_raw;
     a_x = g_mpu.acc_x_raw;
     a_y = g_mpu.acc_y_raw;
-    a_z = g_mpu.acc_z_raw; //hal真好用。？
+    a_z = g_mpu.acc_z_raw; //真好用。？（
 
     MPU_Convert(&g_mpu);
 
@@ -154,7 +156,7 @@ int main(void)
     a_y_tr = (int16_t)(g_mpu.acc_y * 100);
     a_z_tr = (int16_t)(g_mpu.acc_z * 100);
 
-    OLED_ShowChar(24, 0, (w_x_tr < 0) ? '-' : ' ', 16);
+    OLED_ShowChar(24, 0, (w_x_tr < 0) ? '-' : ' ', 16);   
     OLED_ShowNum (32, 0, (uint16_t)((w_x_tr < 0) ? -w_x_tr : w_x_tr), 4, 16);
     OLED_ShowChar(24, 2, (w_y_tr < 0) ? '-' : ' ', 16);
     OLED_ShowNum (32, 2, (uint16_t)((w_y_tr < 0) ? -w_y_tr : w_y_tr), 4, 16);
