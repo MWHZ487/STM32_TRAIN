@@ -90,8 +90,9 @@ int main(void)
   MX_GPIO_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
-  printf("I LOVE U\nHOLLOW WORLD\n");
+  printf("I LOVE U\nHELLO WORLD\n");
   HAL_UART_Receive_IT(&huart1, &rx, 1);
+  HAL_Delay(1000);
   static uint32_t now = 0;  //vofa test
   /* USER CODE END 2 */
 
