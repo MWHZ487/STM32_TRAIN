@@ -51,12 +51,9 @@ typedef enum {
 #define TWO_PI 6.2831853f
 /* USER CODE END PD */
 
-/* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
 
 /* USER CODE END PM */
-
-/* Private variables ---------------------------------------------------------*/
 TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
@@ -79,7 +76,6 @@ static volatile float g_speed = 0.0f;     //实际速度 RPM（中断写，主�
 static volatile uint8_t g_new_sample = 0; //中断置 1，主循环发完清 0
 /* USER CODE END PV */
 
-/* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_TIM1_Init(void);
@@ -472,31 +468,37 @@ int32_t TARGET_Control(void)
   switch (g_mode)
   {
     case WAVE_STEP:       /* 阶跃：100 -> 200 -> 300 -> 100，每段 4 s */
-      if      (t <  4.0f) v = 100.0f;
-      else if (t <  8.0f) v = 200.0f;
-      else if (t < 12.0f) v = 300.0f;
-      else                v = 100.0f;
-      break;
+      {
+        if      (t <  4.0f) v = 100.0f;
+        else if (t <  8.0f) v = 200.0f;
+        else if (t < 12.0f) v = 300.0f;
+        else                v = 100.0f;
+        break;
+      }
 
     case WAVE_SINE_FIX:   /* 固定正弦：0.5 Hz、幅度 50、中心 200 */
-      v = 200.0f + 50.0f * sinf(TWO_PI * 0.5f * t);
-      break;
+      {
+        v = 200.0f + 50.0f * sinf(TWO_PI * 0.5f * t);  //50sin(2pi 0.5 t)
+        break;
+      }
 
-    case WAVE_SINE_SWEEP: /* 变频变幅：0.2 -> 2.6 Hz，30 -> 80，12 s 一轮；用相位累加保证波形连续 */
-    {
-      int32_t p_tick = g_tick % 1200;          /* 1200 x 10ms = 12s */
-      float   p      = (float)p_tick / 1200.0f; /* 0 ~ 1 */
-      float f = 0.2f + 2.4f * p;
-      float a = 30.0f + 50.0f * p;
-      g_phase += TWO_PI * f * CTRL_PERIOD;
-      if (g_phase > TWO_PI) g_phase -= TWO_PI;
-      v = 200.0f + a * sinf(g_phase);
-      break;
-    }
+    case WAVE_SINE_SWEEP:
+      {
+        int32_t p_tick = g_tick % 1200;
+        float p = (float)p_tick / 1200.0f;
+        float f = 0.2f + 2.4f * p;
+        float a = 30.0f + 50.0f * p;
+        g_phase += TWO_PI * f * CTRL_PERIOD;
+        if (g_phase > TWO_PI) g_phase -= TWO_PI;
+        v = 200.0f + a * sinf(g_phase);
+        break;
+      }
 
     default:
-      v = 200.0f;
-      break;
+      {
+        v = 200.0f;
+        break;
+      }
   }
 
   if (v < 0.0f) v = 0.0f;   /* 速度环不生成负目标 */
