@@ -67,13 +67,13 @@ static PID_USE PID = {
   .out_max = 450.0f, .i_max = 3000.0f,
 };
 
-static int16_t g_last_cnt = 0;            //上次编码器计数
-static uint32_t g_tick = 0;               //控制节拍计数（波形时间 = g_tick * CTRL_PERIOD）
-static float g_phase = 0.0f;              //变频正弦的相位累加
-static WAVE_MODE g_mode = WAVE_STEP;      //在这里选波形：WAVE_STEP / WAVE_SINE_FIX / WAVE_SINE_SWEEP
-static volatile int32_t g_target = 0;     //目标速度 RPM（中断写，主循环读）
-static volatile float g_speed = 0.0f;     //实际速度 RPM（中断写，主循环读）
-static volatile uint8_t g_new_sample = 0; //中断置 1，主循环发完清 0
+static int16_t g_last_cnt = 0; //上次编码器计数
+static uint32_t g_tick = 0; //控制节拍计数（波形时间 = g_tick * CTRL_PERIOD）
+static float g_phase = 0.0f; //变频正弦的相位累加
+static WAVE_MODE g_mode = WAVE_SINE_SWEEP;//WAVE_STEP / WAVE_SINE_FIX / WAVE_SINE_SWEEP
+static volatile int32_t g_target = 0; //目标速度 RPM
+static volatile float g_speed = 0.0f; //实际速度 RPM
+static volatile uint8_t g_new_sample = 0; //中断置 1
 /* USER CODE END PV */
 
 void SystemClock_Config(void);
@@ -462,16 +462,19 @@ void MOTOR_Control(int16_t u)
 /* 按当前 g_mode 和 g_tick 生成目标速度（RPM），每个控制周期调用一次 */
 int32_t TARGET_Control(void)
 {
-  float t = g_tick * CTRL_PERIOD;
+  float t = g_tick * CTRL_PERIOD;  //g_tick,脉冲；另一个是周期
   float v;
 
   switch (g_mode)
   {
-    case WAVE_STEP:       /* 阶跃：100 -> 200 -> 300 -> 100，每段 4 s */
+    case WAVE_STEP:
       {
-        if      (t <  4.0f) v = 100.0f;
-        else if (t <  8.0f) v = 200.0f;
-        else if (t < 12.0f) v = 300.0f;
+        int32_t tick = g_tick % 1600;
+        float s = tick * CTRL_PERIOD;
+
+        if (s <  4.0f) v = 100.0f;
+        else if (s <  8.0f) v = 200.0f;
+        else if (s < 12.0f) v = 300.0f;
         else                v = 100.0f;
         break;
       }
@@ -488,8 +491,11 @@ int32_t TARGET_Control(void)
         float p = (float)p_tick / 1200.0f;
         float f = 0.2f + 2.4f * p;
         float a = 30.0f + 50.0f * p;
-        g_phase += TWO_PI * f * CTRL_PERIOD;
-        if (g_phase > TWO_PI) g_phase -= TWO_PI;
+        g_phase += TWO_PI * f * CTRL_PERIOD; //防止偏移，正常写会变成sin的叠加
+        if (g_phase > TWO_PI)
+        {
+          g_phase -= TWO_PI;
+        }
         v = 200.0f + a * sinf(g_phase);
         break;
       }
@@ -501,13 +507,12 @@ int32_t TARGET_Control(void)
       }
   }
 
-  if (v < 0.0f) v = 0.0f;   /* 速度环不生成负目标 */
+  if (v < 0.0f) v = 0.0f;
   return (int32_t)v;
 }
 
 void BUFFER_Send(void)
 {
-  /* VOFA FireWater：逗号分隔 + 换行 */
   printf("%d,%d\n", (int)g_target, (int)g_speed);
   g_new_sample = 0;
 }
@@ -524,20 +529,17 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
   if (htim->Instance != TIM1) return;
 
-  /* (1) 测速 */
   int16_t now_cnt = (int16_t)__HAL_TIM_GET_COUNTER(&htim2);
   int16_t delta   = now_cnt - g_last_cnt; 
   g_last_cnt = now_cnt;
-  g_speed = (float)delta * 60.0f / (PPR * CTRL_PERIOD);
+  g_speed = (float)delta * 60.0f / (PPR * CTRL_PERIOD); //当前速度 = X/T
 
-  /* (2) 生成目标波形 */
+  //生成目标
   g_target = TARGET_Control();
   if (++g_tick >= WAVE_TICKS) g_tick = 0;
 
-  /* (3) PID 计算 */
   float u = PID_Calculate(&PID, (float)g_target, g_speed);
 
-  /* (4) 输出到电机，并通知主循环发一帧 */
   MOTOR_Control((int16_t)u);
   g_new_sample = 1;
 }

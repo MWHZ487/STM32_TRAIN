@@ -11,13 +11,11 @@
 
 | 文件 | 功能 | 对应机试要求 |
 | --- | --- | --- |
-| `bsp_uart.c/h` | 串口 **DMA 发送** + **DMA/IDLE 接收** + printf 重定向 | 串口通信（带 DMA） |
-| `bsp_motor.c/h` | PWM 正反转 + 死区补偿 + 输出限幅 | PWM 电机控制 |
-| `bsp_encoder.c/h` | 编码器测速 + 位置累计 | PID 定速度/定位置 |
+| `uart.c/h` | 串口 **DMA 发送** + **DMA/IDLE 接收** + printf 重定向 | 串口通信（带 DMA） |
+| `motor.c/h` | PWM 正反转 + 死区补偿 + 输出限幅 | PWM 电机控制 |
 | `pid.c/h` | 位置式 PID + 串级位置环 | PID 定速度/定位置 |
-| `bsp_key.c/h` | 2~3 个按键 EXTI 中断 + 时间窗消抖 | 2~3 个按键中断 |
+| `key.c/h` | 2~3 个按键 EXTI 中断 + 时间窗消抖 | 2~3 个按键中断 |
 | `oled.c/h` + `oledfont.h` | SSD1306 0.96 寸 OLED 全驱动 | OLED 显示 |
-| `app_wave.c/h` | 三种目标波形（阶跃/固定正弦/变频正弦） | 加分项 |
 
 ---
 
@@ -46,6 +44,7 @@ Clock Configuration → HCLK 敲 72，回车
 ```text
 USART1 → Asynchronous, 115200, 8N1  → PA9(TX) / PA10(RX)
 DMA Settings → Add → USART1_TX → Mode: Normal
+DMA Settings → Add → USART1_RX → Mode: Normal   ← 缺这一条，UART_Init 会 HardFault
 USART1 → NVIC Settings → 勾 USART1 global interrupt
 ```
 
@@ -92,12 +91,12 @@ Code Generator → Generate peripheral initialization as a pair of .c/.h files�
 你的工程/
 ├── Core/
 │   ├── Inc/
-│   │   ├── bsp_uart.h  bsp_motor.h  bsp_encoder.h
-│   │   ├── bsp_key.h   pid.h        app_wave.h
+│   │   ├── uart.h   motor.h
+│   │   └── key.h    pid.h（含编码器+波形）
 │   │   └── oled.h      oledfont.h
 │   └── Src/
-│       ├── bsp_uart.c  bsp_motor.c  bsp_encoder.c
-│       ├── bsp_key.c   pid.c        app_wave.c
+│       ├── uart.c   motor.c
+│       └── key.c    pid.c（含编码器+波形）
 │       └── oled.c
 ```
 
@@ -107,12 +106,10 @@ Code Generator → Generate peripheral initialization as a pair of .c/.h files�
 
 ```cmake
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
-    Core/Src/bsp_uart.c
-    Core/Src/bsp_motor.c
-    Core/Src/bsp_encoder.c
-    Core/Src/bsp_key.c
+    Core/Src/uart.c
+    Core/Src/motor.c
+    Core/Src/key.c
     Core/Src/pid.c
-    Core/Src/app_wave.c
     Core/Src/oled.c
 )
 ```
@@ -129,12 +126,10 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
 ```c
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
-#include "bsp_uart.h"
-#include "bsp_motor.h"
-#include "bsp_encoder.h"
-#include "bsp_key.h"
+#include "uart.h"
+#include "motor.h"
+#include "key.h"
 #include "pid.h"
-#include "app_wave.h"
 #include "oled.h"
 /* USER CODE END Includes */
 
@@ -142,7 +137,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
 PID_t     g_spd;                 /* 速度环 */
 PID_t     g_pos;                 /* 位置环（定位置才用） */
 WaveMode  g_wave_mode = WAVE_STEP;
-float     g_t         = 0.0f;
+uint16_t  g_tick      = 0;       /* 10ms 一拍，不用 float 累加 */
 volatile int32_t g_target = 0;
 volatile float   g_rpm    = 0.0f;
 /* USER CODE END PV */
@@ -152,10 +147,10 @@ volatile float   g_rpm    = 0.0f;
 
 ```c
 /* USER CODE BEGIN 2 */
-BSP_UART_Init(&huart1);
-BSP_Motor_Init();
-BSP_Encoder_Init();
-BSP_Key_Init();
+UART_Init(&huart1);
+MOTOR_Init();
+ENCODER_Init();
+KEY_Init();
 OLED_Init();
 OLED_Clear();
 OLED_ShowString(0, 0, "READY", 16);
@@ -175,25 +170,29 @@ HAL_TIM_Base_Start_IT(&htim1);   /* 10ms 控制周期 */
 while (1)
 {
     /* 1. 按键切模式 */
-    if (BSP_Key_GetEvent(0)) {
-        g_wave_mode = (WaveMode)((g_wave_mode + 1) % WAVE_MODE_NUM);
-        g_t = 0.0f;
+    if (KEY_GetEvent(0)) {
+        g_wave_mode = (g_wave_mode == WAVE_STEP) ? WAVE_SINE_FIX :
+                                            (g_wave_mode == WAVE_SINE_FIX) ? WAVE_SINE_SWEEP : WAVE_STEP;
+        g_tick = 0;
         PID_Reset(&g_spd);          /* 切波形必须清积分！ */
     }
 
-    /* 2. OLED 显示 */
-    OLED_ShowString(0,  0, (char *)APP_Wave_Name(g_wave_mode), 16);
+    /* 2. OLED 显示。转速可能为负，不能直接转 uint32_t */
+    OLED_ShowString(0,  0, (char *)WAVE_Name(g_wave_mode), 16);
     OLED_ShowString(0,  2, "T:", 16);
     OLED_ShowNum   (16, 2, (uint32_t)g_target, 4, 16);
     OLED_ShowString(64, 2, "A:", 16);
-    OLED_ShowNum   (88, 2, (uint32_t)g_rpm, 4, 16);
+    {
+        int rpm_i = (int)g_rpm;
+        OLED_ShowNum(88, 2, (uint32_t)(rpm_i < 0 ? -rpm_i : rpm_i), 4, 16);
+    }
 
     /* 3. 串口上报（DMA，不阻塞） */
     printf("%d,%d\n", (int)g_target, (int)g_rpm);
 
     /* 4. 串口命令（可选） */
     uint8_t cmd[32];
-    if (BSP_UART_ReadFrame(cmd, sizeof cmd) > 0) {
+    if (UART_ReadFrame(cmd, sizeof cmd) > 0) {
         /* 解析 cmd，比如 "100" 直接设目标转速 */
     }
     /* USER CODE END WHILE */
@@ -209,18 +208,18 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     if (htim->Instance != TIM1) return;
 
     /* ① 测速（同时更新 position） */
-    g_rpm = BSP_Encoder_ReadRpm();
+    g_rpm = ENCODER_ReadRpm();
 
-    /* ② 生成目标波形 */
-    g_t += 0.01f;
-    if (g_t > 60.0f) g_t = 0.0f;
-    g_target = APP_Wave_Get(g_wave_mode, g_t);
+    /* ② 生成目标波形。整数节拍，避免 float 每次 +0.01 的累积误差 */
+    g_tick++;
+    if (g_tick >= 6000) g_tick = 0;          /* 60 秒一轮 */
+    g_target = WAVE_Get(g_wave_mode, g_tick * ENC_PERIOD_S);
 
     /* ③ PID */
     float u = PID_Calc(&g_spd, (float)g_target, g_rpm);
 
     /* ④ 输出 */
-    BSP_Motor_Set((int16_t)u);
+    MOTOR_Set((int16_t)u);
 }
 /* USER CODE END 4 */
 ```
@@ -232,27 +231,27 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 ### 串口
 
 ```c
-BSP_UART_Init(&huart1);                        /* 初始化，启动 DMA 接收 */
-BSP_UART_Send(buf, len);                       /* DMA 发送 */
-BSP_UART_Printf("%d,%d\n", a, b);              /* 格式化发送 */
+UART_Init(&huart1);                        /* 初始化，启动 DMA 接收 */
+UART_Send(buf, len);                       /* DMA 发送 */
+UART_Printf("%d,%d\n", a, b);              /* 格式化发送 */
 uint8_t buf[64];
-uint16_t n = BSP_UART_ReadFrame(buf, sizeof buf);   /* 取一帧，0 = 无新数据 */
+uint16_t n = UART_ReadFrame(buf, sizeof buf);   /* 取一帧，0 = 无新数据 */
 ```
 
 ### 电机
 
 ```c
-BSP_Motor_Set(u);      /* u: -450 ~ +450，正负表示方向，0 = 停 */
-BSP_Motor_Stop();
+MOTOR_Set(u);      /* u: -450 ~ +450，正负表示方向，0 = 停 */
+MOTOR_Stop();
 ```
 
 ### 编码器
 
 ```c
-float   rpm = BSP_Encoder_ReadRpm();     /* 同时更新 delta / position */
-int16_t d   = BSP_Encoder_GetDelta();
-int32_t pos = BSP_Encoder_GetPosition();
-BSP_Encoder_ResetPosition();
+float   rpm = ENCODER_ReadRpm();     /* 同时更新 delta / position */
+int16_t d   = ENCODER_GetDelta();
+int32_t pos = ENCODER_GetPosition();
+ENCODER_ResetPosition();
 ```
 
 ### PID
@@ -269,8 +268,8 @@ float u = PID_PositionCalc(&g_pos, &g_spd, target_pulse, now_pulse, now_rpm, 300
 ### 按键
 
 ```c
-if (BSP_Key_GetEvent(0)) { ... }    /* 0/1/2，读后自动清除 */
-if (!BSP_Key_Raw(0))     { ... }    /* 0 = 按下 */
+if (KEY_GetEvent(0)) { ... }    /* 0/1/2，读后自动清除 */
+if (!KEY_Raw(0))     { ... }    /* 0 = 按下 */
 ```
 
 ### OLED
@@ -287,9 +286,9 @@ OLED_DrawBMP(0, 0, 128, 8, BMP);
 ### 波形
 
 ```c
-g_target = APP_Wave_Get(WAVE_STEP, t);        /* 阶跃 */
-g_target = APP_Wave_Get(WAVE_SINE_FIX, t);    /* 固定正弦 */
-g_target = APP_Wave_Get(WAVE_SINE_SWEEP, t);  /* 变频正弦 */
+g_target = WAVE_Get(WAVE_STEP, t);        /* 阶跃 */
+g_target = WAVE_Get(WAVE_SINE_FIX, t);    /* 固定正弦 */
+g_target = WAVE_Get(WAVE_SINE_SWEEP, t);  /* 变频正弦 */
 ```
 
 ---
@@ -366,7 +365,7 @@ TIM3 = PWM         → HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1/2)
 
 ```text
 0~5   min   CubeMX 按上面清单配好 → GENERATE
-5~8   min   拷 7 个 .c + 8 个 .h，CMake 加源文件
+5~8   min   拷 5 个 .c + 6 个 .h，CMake 加源文件
 8~12  min   main.c 抄模板（初始化 + 主循环 + 中断）
 12~15 min   编译烧录，确认 OLED 亮、串口有输出、电机能动
 15~35 min   写题目要求的业务逻辑
