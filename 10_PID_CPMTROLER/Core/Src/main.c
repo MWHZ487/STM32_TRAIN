@@ -529,19 +529,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
   if (htim->Instance != TIM1) return;
 
-  int16_t now_cnt = (int16_t)__HAL_TIM_GET_COUNTER(&htim2);
-  int16_t delta   = now_cnt - g_last_cnt; 
-  g_last_cnt = now_cnt;
-  g_speed = (float)delta * 60.0f / (PPR * CTRL_PERIOD); //当前速度 = X/T
-
-  //生成目标
-  g_target = TARGET_Control();
-  if (++g_tick >= WAVE_TICKS) g_tick = 0;
-
-  float u = PID_Calculate(&PID, (float)g_target, g_speed);
-
-  MOTOR_Control((int16_t)u);
-  g_new_sample = 1;
+  //需要进行位置环
+  //读取编码器，计算位置误差，位置环函数包含了双环的逻辑代码
+  //把误差传入电机
+  
+  float target_pos = (float)
 }
 /* USER CODE END 4 */
 

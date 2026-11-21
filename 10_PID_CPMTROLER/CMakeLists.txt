@@ -43,9 +43,20 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
 )
 
 # Add sources to executable
-target_sources(${CMAKE_PROJECT_NAME} PRIVATE
-    # Add user sources here
+# 自动收集 Core/Src 下的所有 .c，新增文件不用改这里。
+# 但要排除 CubeMX 自己已经加过的 6 个文件，否则会重复定义。
+file(GLOB USER_SOURCES CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/*.c"
 )
+list(REMOVE_ITEM USER_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/main.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/stm32f1xx_it.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/stm32f1xx_hal_msp.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/sysmem.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/syscalls.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/system_stm32f1xx.c"
+)
+target_sources(${CMAKE_PROJECT_NAME} PRIVATE ${USER_SOURCES})
 
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
